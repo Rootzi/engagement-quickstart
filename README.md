@@ -29,7 +29,24 @@ Per-engagement setup for internal/external tests: variables, folder layout and l
 | `relay <args>` | ntlmrelayx (sudo) | `$ENG_ROOT/relay/` |
 | `tssl <host:port>` | testssl (JSON) | `$ENG_ROOT/testssl/` |
 | `nscan <label> <args>` | nmap (sudo, `-oA`) | `$ENG_ROOT/nmap/` |
+| `prep` | reportprep.py | `$ENG_ROOT/report_prep_<date>.xlsx` |
 | `engdone` | n/a | clears creds |
+
+## Report prep (`prep`)
+
+Drop `.nessus` exports into `$ENG_ROOT/nessus/` and run `prep`. It writes a spreadsheet with:
+
+- **Summary**: 2.4 Information Provided line, findings by risk, suggested 1.4 area ratings, 3.3 priority order
+- **Findings**: one row per library title, with risk, area, consolidated IP ranges, a verification command and evidence from a representative host
+- **Affected**: one row per finding/host/port, each with its own verification command
+- **Unmapped**: anything non-informational that didn't match a library title, with a Tenable link
+- **Scope** and **Limitations**: from `targets.txt`/`scope.txt` and `notes/limitations.md`
+
+Mapping lives in `mapping.toml`. Add a `[[finding]]` (or a plugin ID to an existing one) whenever something lands on Unmapped that belongs to a library title.
+
+Needs Python 3.11+ and openpyxl (`apt install python3-openpyxl`). Runs entirely locally.
+
+You can also run it directly: `python3 reportprep.py scan1.nessus scan2.nessus -o prep.xlsx`.
 
 ## Folder layout
 

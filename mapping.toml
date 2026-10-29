@@ -1,0 +1,132 @@
+# =====================================================================
+#  Library mapping
+#
+#  Each [[finding]] maps scanner output to one of your library titles.
+#  A Nessus plugin matches if its ID is in `nessus_ids` OR its name
+#  matches any regex in `nessus_name_patterns` (case-insensitive).
+#  IDs are checked first across all findings, then patterns, in file order.
+#
+#  area:    one of the five 1.4 Overall Assessment areas
+#  verify:  suggested detection command. Placeholders: {host} {port} {url}
+#  include_info: also map Informational plugins (e.g. service detection)
+#
+#  Add new entries as you meet them; anything unmatched lands on the
+#  "Unmapped" tab with Nessus's own name so nothing is lost.
+# =====================================================================
+
+[[finding]]
+title = "Unencrypted Telnet Server"
+area = "Encryption"
+nessus_ids = [42263]
+nessus_name_patterns = ["unencrypted telnet"]
+verify = "sudo nmap -sS -p{port} --script=telnet-encryption {host}"
+
+[[finding]]
+title = "SSL Certificate Cannot Be Trusted"
+area = "Encryption"
+nessus_ids = [51192, 57582]
+nessus_name_patterns = ["certificate cannot be trusted", "self-signed certificate"]
+verify = "testssl -S {host}:{port}"
+
+[[finding]]
+title = "Expired SSL Certificate"
+area = "Encryption"
+nessus_ids = [15901]
+nessus_name_patterns = ["certificate expiry", "expired certificate"]
+verify = "testssl -S {host}:{port}"
+
+[[finding]]
+title = "TLS Version 1.0/1.1 Detection"
+area = "Encryption"
+nessus_ids = [104743, 157288]
+nessus_name_patterns = ["tls version 1\\.[01]"]
+verify = "testssl -p {host}:{port}"
+
+[[finding]]
+title = "SWEET32 Vulnerability"
+area = "Encryption"
+nessus_ids = [42873]
+nessus_name_patterns = ["sweet32", "medium strength cipher"]
+verify = "testssl -W {host}:{port}"
+
+[[finding]]
+title = "SSL Anonymous Cipher Suites Supported"
+area = "Encryption"
+nessus_ids = [31705]
+nessus_name_patterns = ["anonymous cipher"]
+verify = "nmap -p{port} --script=ssl-enum-ciphers {host}"
+
+[[finding]]
+title = "SSH Weak Algorithms Supported"
+area = "Encryption"
+nessus_ids = [90317, 70658, 71049, 153953]
+nessus_name_patterns = ["^ssh .*(weak|cbc)"]
+verify = "nmap -p{port} --script=ssh2-enum-algos {host}"
+
+[[finding]]
+title = "ICMP Timestamp Request - Remote Date Disclosure (ICMP Type 13)"
+area = "Secure Configuration"
+nessus_ids = [10114]
+nessus_name_patterns = ["icmp timestamp"]
+include_info = true
+verify = "sudo hping3 --icmp --icmp-ts -c 1 {host}"
+
+[[finding]]
+title = "SMB Signing Not Required"
+area = "Access Control"
+nessus_ids = [57608]
+nessus_name_patterns = ["smb signing not required"]
+verify = "nmap -p{port} --script=smb2-security-mode {host}"
+
+[[finding]]
+title = "Directory Listing Enabled"
+area = "Secure Configuration"
+nessus_ids = [40984]
+nessus_name_patterns = ["browsable web directories", "directory listing"]
+verify = "curl -sk {url}"
+
+[[finding]]
+title = "Exposed Database Services"
+area = "Secure Configuration"
+include_info = true
+nessus_name_patterns = [
+  "^(mysql|mariadb|postgresql|microsoft sql server|mongodb|redis|oracle (database|tns)|elasticsearch|couchdb|cassandra|memcached).*(detection|listener|unprotected|server)",
+]
+verify = "nmap -sV -p{port} {host}"
+
+# Catch-all for version/patch findings. Keep this LAST so specific
+# entries above win. Each host's affected software is listed on the
+# Affected tab via the plugin name.
+[[finding]]
+title = "Outdated and Vulnerable Software in Use"
+area = "Vulnerability Management"
+nessus_name_patterns = [
+  "<\\s*\\d",
+  "multiple vulnerabilities",
+  "unsupported",
+  "end of life",
+  "\\bseol\\b",
+  "\\beol\\b",
+  "security update",
+  "\\bms\\d\\d-\\d{3}\\b",
+  "\\bkb\\d{6,}\\b",
+]
+verify = "nmap -sV -p{port} {host}"
+
+# These come from nxc / Burp / BloodHound rather than Nessus. Listed so
+# the titles and areas are known; evidence comes from your own logs.
+[[finding]]
+title = "Unauthenticated API Endpoints"
+area = "Secure Configuration"
+
+[[finding]]
+title = "Unconstrained Delegation Detected"
+area = "Access Control"
+
+[[finding]]
+title = "LDAP Signing & Channel Binding Disabled"
+area = "Identity & Authentication"
+
+[[finding]]
+title = "Kerberoastable Accounts Identified"
+area = "Identity & Authentication"

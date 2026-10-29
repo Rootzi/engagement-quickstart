@@ -9,6 +9,9 @@
 #  each time and only ever live in that shell's memory, never on disk).
 # =====================================================================
 
+# Where this repo lives (so `prep` can find reportprep.py)
+export QS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+
 # --- Engagement details: edit these per job --------------------------
 export ENG_NAME="CLIENT-2026-11"                  # used for folder names
 export ENG_ROOT="$HOME/engagements/$ENG_NAME"
@@ -68,6 +71,11 @@ relay() {
     sudo "$bin" "$@" 2>&1 | tee -a "$ENG_ROOT/relay/relay_$(date +%F_%H%M).log"
 }
 
+# Build the report-prep spreadsheet from everything in $ENG_ROOT:   prep
+prep() {
+    python3 "$QS_DIR/reportprep.py" --eng-root "$ENG_ROOT" "$@"
+}
+
 # Wipe creds from this shell when you're done:   engdone
 engdone() {
     unset TUSER TPASS NTHASH
@@ -90,5 +98,6 @@ echo "                           e.g. relay -tf \"\$ENG_ROOT/nxc/relay_targets.t
 echo "  tssl <host:port>         testssl, JSON saved to \$ENG_ROOT/testssl/"
 echo "  nscan <label> <args>     nmap (sudo) with -oA into \$ENG_ROOT/nmap/"
 echo "                           e.g. nscan telnet -sS -p23 --script=telnet-encryption 10.0.0.5"
+echo "  prep                     build report-prep spreadsheet from \$ENG_ROOT"
 echo "  engdone                  clear credentials from this shell"
 echo
