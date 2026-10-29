@@ -114,7 +114,20 @@ shot() {
             *)                           url="https://$t" ;;
         esac
         case "$url" in
-            file://*) name="$(basename "$url" | sed -E 's#\.html?$##')" ;;
+            file://*) name="$(basename "$url" | sed -E 's#\.html?$##')"
+                      # PoC sanity check: does each framed URL send framing protections?
+                      grep -oiE "<iframe[^>]*src=[\"'][^\"']+" "${url#file://}" | sed -E "s/.*src=[\"']//" |
+                      while IFS= read -r src; do
+                          hdrs="$(curl -sk -D - -o /dev/null --max-time 10 "$src" | tr -d '\r')"
+                          if [ -z "$hdrs" ]; then
+                              echo "[!] $src unreachable: frame will be blank"
+                          elif printf '%s\n' "$hdrs" | grep -qiE '^x-frame-options:|^content-security-policy:.*frame-ancestors'; then
+                              echo "[!] $src sends framing protections (may not be vulnerable):"
+                              printf '%s\n' "$hdrs" | grep -iE '^x-frame-options:|^content-security-policy:.*frame-ancestors' | sed 's/^/      /'
+                          else
+                              echo "[i] $src: no X-Frame-Options or CSP frame-ancestors"
+                          fi
+                      done ;;
             *)        name="${url#*://}"
                       # skip dead targets rather than screenshotting Chrome's error page
                       if ! curl -sk -o /dev/null --max-time 10 "$url"; then

@@ -45,7 +45,8 @@ shot clickjackpoc.html               # local HTML files, e.g. framing PoCs
 
 - Bare hosts default to `https://`, except `:80`, `:8080` and `:8000`, which use `http://`.
 - Unreachable targets are skipped instead of screenshotting Chrome's error page.
-- Certificate errors are ignored, and Chrome's background calls to Google are switched off.
+- Certificate errors are ignored everywhere, including inside iframes, so you never get a "Your connection is not private" page in a shot. Chrome's background calls to Google are also switched off.
+- For `.html` files, every iframe `src` is checked first. You get `[i]` if there's no `X-Frame-Options` or CSP `frame-ancestors`, and `[!]` if there is (the PoC may not be valid) or if the target is unreachable.
 - To view shots from a remote box: `scp box:'~/engagements/<ENG>/screenshots/*' .`
 | `engdone` | n/a | clears creds |
 
