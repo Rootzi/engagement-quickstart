@@ -1,0 +1,16 @@
+# Safety net: never commit engagement/client output
+engagements/
+*.nessus
+*.xml
+*.gnmap
+*.nmap
+*.json
+*.csv
+*.log
+*.png
+*.jpg
+*.pcap
+*.ntlm*
+*.ccache
+targets.txt
+scope.txt
