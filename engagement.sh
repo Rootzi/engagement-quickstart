@@ -32,6 +32,13 @@ for d in nessus nmap naabu nuclei burp testssl sslscan nxc relay screenshots not
     mkdir -p "$ENG_ROOT/$d"
 done
 touch "$SCOPE" "$TARGETS"
+touch "$ENG_ROOT/notes/limitations.md"     # jot limitations as they happen (report 2.5)
+
+# Non-secret engagement details for report section 2.4 (password/hash never saved)
+if [ -n "$TUSER" ]; then
+    printf 'engagement=%s\ndomain=%s\nusername=%s\n' "$ENG_NAME" "$DOMAIN" "$TUSER" \
+        > "$ENG_ROOT/engagement.info"
+fi
 
 # --- Helpers ---------------------------------------------------------
 
