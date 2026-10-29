@@ -76,6 +76,63 @@ prep() {
     python3 "$QS_DIR/reportprep.py" --eng-root "$ENG_ROOT" "$@"
 }
 
+# Headless web screenshots (no display needed, works over SSH):
+#   shot https://10.0.0.5/login          -> $ENG_ROOT/screenshots/
+#   shot --here 10.0.0.5:8443            -> current directory
+#   shot -o /some/dir urls.txt           -> one URL/host per line
+#   shot clickjackpoc.html               -> local HTML files work too
+shot() {
+    local dir="$ENG_ROOT/screenshots" list="" bin sb="" t url name out
+    bin="$(command -v chromium || command -v chromium-browser || command -v google-chrome || command -v google-chrome-stable)"
+    if [ -z "$bin" ]; then echo "shot: no Chromium/Chrome found (apt install chromium)"; return 1; fi
+    [ "$(id -u)" -eq 0 ] && sb="--no-sandbox"
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --here)    dir="$PWD" ;;
+            -o|--out)  dir="$2"; shift ;;
+            -h|--help) echo "usage: shot [--here | -o DIR] <url|host[:port]|file.html|urls.txt>..."; return 0 ;;
+            *)
+                case "$1" in
+                    *.html|*.htm) list="$list$1"$'\n' ;;
+                    *) if [ -f "$1" ]; then list="$list$(grep -v '^[[:space:]]*#' "$1")"$'\n'
+                       else list="$list$1"$'\n'; fi ;;
+                esac ;;
+        esac
+        shift
+    done
+    if [ -z "$list" ]; then echo "usage: shot [--here | -o DIR] <url|host[:port]|file.html|urls.txt>..."; return 1; fi
+    mkdir -p "$dir"
+
+    printf '%s' "$list" | while IFS= read -r t; do
+        t="$(printf '%s' "$t" | tr -d '[:space:]')"
+        [ -z "$t" ] && continue
+        case "$t" in
+            http://*|https://*|file://*) url="$t" ;;
+            *.html|*.htm)                url="file://$(realpath "$t")" ;;
+            *:80|*:8080|*:8000)          url="http://$t" ;;
+            *)                           url="https://$t" ;;
+        esac
+        case "$url" in
+            file://*) name="$(basename "$url" | sed -E 's#\.html?$##')" ;;
+            *)        name="${url#*://}"
+                      # skip dead targets rather than screenshotting Chrome's error page
+                      if ! curl -sk -o /dev/null --max-time 10 "$url"; then
+                          echo "[-] $url (unreachable)"; continue
+                      fi ;;
+        esac
+        name="$(printf '%s' "$name" | sed -E 's#[^A-Za-z0-9._-]+#_#g; s#_+$##' | cut -c1-100)"
+        out="$dir/${name}_$(date +%Y%m%d-%H%M%S).png"
+        # background-networking flags stop Chrome calling Google from the client network
+        timeout 45 "$bin" --headless=new --disable-gpu $sb --ignore-certificate-errors \
+            --no-first-run --disable-background-networking --disable-component-update \
+            --disable-sync --disable-default-apps --disable-features=Translate,OptimizationHints,MediaRouter \
+            --hide-scrollbars --window-size=1440,900 --virtual-time-budget=5000 \
+            --screenshot="$out" "$url" >/dev/null 2>&1
+        if [ -s "$out" ]; then echo "[+] $url -> $out"; else echo "[-] $url (failed or timed out)"; rm -f "$out"; fi
+    done
+}
+
 # Wipe creds from this shell when you're done:   engdone
 engdone() {
     unset TUSER TPASS NTHASH
@@ -98,6 +155,8 @@ echo "                           e.g. relay -tf \"\$ENG_ROOT/nxc/relay_targets.t
 echo "  tssl <host:port>         testssl, JSON saved to \$ENG_ROOT/testssl/"
 echo "  nscan <label> <args>     nmap (sudo) with -oA into \$ENG_ROOT/nmap/"
 echo "                           e.g. nscan telnet -sS -p23 --script=telnet-encryption 10.0.0.5"
+echo "  shot [--here|-o DIR] <targets>  headless screenshots to \$ENG_ROOT/screenshots/"
+echo "                           e.g. shot https://10.0.0.5/login   |   shot --here urls.txt   |   shot clickjackpoc.html"
 echo "  prep                     build report-prep spreadsheet from \$ENG_ROOT"
 echo "  engdone                  clear credentials from this shell"
 echo

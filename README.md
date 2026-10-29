@@ -29,7 +29,24 @@ Per-engagement setup for internal/external tests: variables, folder layout and l
 | `relay <args>` | ntlmrelayx (sudo) | `$ENG_ROOT/relay/` |
 | `tssl <host:port>` | testssl (JSON) | `$ENG_ROOT/testssl/` |
 | `nscan <label> <args>` | nmap (sudo, `-oA`) | `$ENG_ROOT/nmap/` |
+| `shot [--here\|-o DIR] <targets>` | headless Chromium | `$ENG_ROOT/screenshots/` |
 | `prep` | reportprep.py | `$ENG_ROOT/report_prep_<date>.xlsx` |
+
+### Screenshots (`shot`)
+
+Headless Chromium, so no display is needed and it works over plain SSH. Needs `chromium` (`apt install chromium`) and `curl`.
+
+```bash
+shot https://10.0.0.5/login          # saves to $ENG_ROOT/screenshots/
+shot --here 10.0.0.5:8443            # saves to the current directory
+shot -o /some/dir urls.txt           # file with one URL/host per line (# comments ok)
+shot clickjackpoc.html               # local HTML files, e.g. framing PoCs
+```
+
+- Bare hosts default to `https://`, except `:80`, `:8080` and `:8000`, which use `http://`.
+- Unreachable targets are skipped instead of screenshotting Chrome's error page.
+- Certificate errors are ignored, and Chrome's background calls to Google are switched off.
+- To view shots from a remote box: `scp box:'~/engagements/<ENG>/screenshots/*' .`
 | `engdone` | n/a | clears creds |
 
 ## Report prep (`prep`)
